@@ -1,6 +1,6 @@
 from typing import List, Union
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from dotenv import load_dotenv
 from spark_chat import SparkChat
 import os
@@ -28,9 +28,17 @@ class Message(BaseModel):
 
 class ChatCompletion(BaseModel):
     temperature: float = 0.7
-    max_tokens: int = 2048
+    max_tokens: Union[int, None]
     stream: bool = False
     messages: List[Message] = []
+    model: str
+    n: int
+
+    @validator('max_tokens', pre=True, always=True)
+    def set_max_tokens(cls, value):
+        if value is None:
+            return 2048
+        return value
 
 
 @app.get("/")
@@ -40,6 +48,7 @@ def read_root():
 
 @app.post("/v1/chat/completions")
 def chat_completion(chatCompletion: ChatCompletion):
+
     spark_chat = SparkChat(
         os.environ["APP_ID"],
         os.environ["API_KEY"],
