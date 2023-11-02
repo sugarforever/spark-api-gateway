@@ -40,7 +40,6 @@ class ChatCompletion(BaseModel):
             return 2048
         return value
 
-
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
