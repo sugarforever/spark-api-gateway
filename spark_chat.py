@@ -34,6 +34,7 @@ class SparkChat(object):
         signature_origin += "date: " + date + "\n"
         signature_origin += "GET " + self.path + " HTTP/1.1"
 
+        print(signature_origin)
         signature_sha = hmac.new(self.api_secret.encode('utf-8'), signature_origin.encode('utf-8'),
                                  digestmod=hashlib.sha256).digest()
 
@@ -111,8 +112,10 @@ class SparkChat(object):
 
     def chatCompletion(self, messages, temperature=0.7, max_tokens=2048):
         websocket.enableTrace(False)
+        url = self.create_url()
+        print(url)
         ws = websocket.WebSocketApp(
-            self.create_url(),
+            url,
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,

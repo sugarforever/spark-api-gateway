@@ -1,5 +1,5 @@
-from typing import List, Union
-from fastapi import FastAPI
+from typing import Annotated, List, Union
+from fastapi import FastAPI, Header
 from pydantic import BaseModel, validator
 from dotenv import load_dotenv
 from spark_chat import SparkChat
@@ -20,11 +20,9 @@ app = FastAPI()
   }
 """
 
-
 class Message(BaseModel):
     role: str
     content: str
-
 
 class ChatCompletion(BaseModel):
     temperature: float = 0.7
@@ -33,29 +31,51 @@ class ChatCompletion(BaseModel):
     messages: List[Message] = []
     model: str
     n: int
+    version: Union[str, None]
 
     @validator('max_tokens', pre=True, always=True)
     def set_max_tokens(cls, value):
         if value is None:
             return 2048
         return value
+    
+    @validator('version', pre=True, always=True)
+    def set_version(cls, value):
+        if value is None:
+            return 'v1.1'
+        return value 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+def get_domain(version):
+    domain = None
+    if version == 'v1.1':
+        domain = "general"
+    elif version == 'v2.1':
+        domain = "generalv2"
+    elif version == 'v3.1':
+        domain = "generalv3"
 
+    return domain
 
 @app.post("/v1/chat/completions")
-def chat_completion(chatCompletion: ChatCompletion):
+def chat_completion(
+    chatCompletion: ChatCompletion,
+    X_APP_ID: Annotated[str | None, Header(convert_underscores=False)] = None,
+    X_API_KEY: Annotated[str | None, Header(convert_underscores=False)] = None,
+    X_API_SECRET: Annotated[str | None, Header(convert_underscores=False)] = None
+):
+    version = chatCompletion.version
+    domain = get_domain(version)
 
     spark_chat = SparkChat(
-        os.environ["APP_ID"],
-        os.environ["API_KEY"],
-        os.environ["API_SECRET"],
-        "ws://spark-api.xf-yun.com/v1.1/chat",
-        "general"
+        X_APP_ID or os.environ["APP_ID"],
+        X_API_KEY or os.environ["API_KEY"],
+        X_API_SECRET or os.environ["API_SECRET"],
+        f"ws://spark-api.xf-yun.com/{version}/chat",
+        domain
     )
 
     message_dicts = [{"role": msg.role, "content": msg.content} for msg in chatCompletion.messages]
     completion = spark_chat.chatCompletion(message_dicts, chatCompletion.temperature, chatCompletion.max_tokens)
+    completion["version"] = version
+    completion["domain"] = domain
     return completion
