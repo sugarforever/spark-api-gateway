@@ -59,9 +59,9 @@ def get_domain(version):
 @app.post("/v1/chat/completions")
 def chat_completion(
     chatCompletion: ChatCompletion,
-    X_APP_ID: Annotated[str | None, Header(convert_underscores=False)] = None,
-    X_API_KEY: Annotated[str | None, Header(convert_underscores=False)] = None,
-    X_API_SECRET: Annotated[str | None, Header(convert_underscores=False)] = None
+    X_APP_ID: Annotated[Union[str, None], Header(convert_underscores=False)] = None,
+    X_API_KEY: Annotated[Union[str, None], Header(convert_underscores=False)] = None,
+    X_API_SECRET: Annotated[Union[str, None], Header(convert_underscores=False)] = None
 ):
     version = chatCompletion.version
     domain = get_domain(version)
