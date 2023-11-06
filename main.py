@@ -1,4 +1,4 @@
-from typing import Annotated, List, Union
+from typing import Annotated, List, Union, Optional
 from fastapi import FastAPI, Header
 from pydantic import BaseModel, validator
 from dotenv import load_dotenv
@@ -26,12 +26,12 @@ class Message(BaseModel):
 
 class ChatCompletion(BaseModel):
     temperature: float = 0.7
-    max_tokens: Union[int, None]
+    max_tokens: Optional[Union[int, None]] = 2048
     stream: bool = False
     messages: List[Message] = []
     model: str
     n: int
-    version: Union[str, None]
+    version: Optional[Union[str, None]] = 'v1.1'
 
     @validator('max_tokens', pre=True, always=True)
     def set_max_tokens(cls, value):
