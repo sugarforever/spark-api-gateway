@@ -1,6 +1,6 @@
 from typing import Annotated, List, Union, Optional
 from fastapi import FastAPI, Header, Request, HTTPException
-from fastapi.openapi.models import OpenAPI
+from fastapi.openapi.models import OpenAPI, Server
 from starlette.responses import HTMLResponse
 from pathlib import Path
 from pydantic import BaseModel, validator
@@ -92,6 +92,12 @@ async def serve_readme(request: Request):
     else:
         raise HTTPException(status_code=404, detail="NOT FOUND")
 
+servers = [
+    Server(url="sparkai-gateway.vercel.app", description="Spark AI Gateway - Staging"),
+]
+
 @app.get("/openapi.json", response_model=OpenAPI)
 async def get_openapi_schema():
-    return app.openapi()
+    openapi_schema = app.openapi()
+    openapi_schema.servers = servers
+    return openapi_schema
