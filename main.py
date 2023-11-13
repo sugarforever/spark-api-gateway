@@ -1,5 +1,6 @@
 from typing import Annotated, List, Union, Optional
 from fastapi import FastAPI, Header, Request, HTTPException
+from fastapi.openapi.models import OpenAPI
 from starlette.responses import HTMLResponse
 from pathlib import Path
 from pydantic import BaseModel, validator
@@ -90,3 +91,7 @@ async def serve_readme(request: Request):
             return html_file.read()
     else:
         raise HTTPException(status_code=404, detail="NOT FOUND")
+
+@app.get("/openapi.json", response_model=OpenAPI)
+async def get_openapi_schema():
+    return app.openapi()
