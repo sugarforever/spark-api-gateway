@@ -12,7 +12,7 @@ load_dotenv()
 
 servers = [
     {
-        "url": "sparkai-gateway.vercel.app",
+        "url": "https://sparkai-gateway.vercel.app",
         "description": "Spark AI Gateway - Staging"
     },
 ]
