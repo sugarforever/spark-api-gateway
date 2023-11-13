@@ -1,5 +1,7 @@
 from typing import Annotated, List, Union, Optional
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Request, HTTPException
+from starlette.responses import HTMLResponse
+from pathlib import Path
 from pydantic import BaseModel, validator
 from dotenv import load_dotenv
 from spark_chat import SparkChat
@@ -79,3 +81,12 @@ def chat_completion(
     completion["version"] = version
     completion["domain"] = domain
     return completion
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_readme(request: Request):
+    index_path = Path("web/index.html")  # Adjust the path as needed
+    if index_path.is_file():
+        with open(index_path, "r", encoding="utf-8") as html_file:
+            return html_file.read()
+    else:
+        raise HTTPException(status_code=404, detail="NOT FOUND")
