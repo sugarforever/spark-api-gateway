@@ -109,7 +109,12 @@ async def serve_readme(request: Request):
     else:
         raise HTTPException(status_code=404, detail="NOT FOUND")
 
-
+@app.get("/privacy", response_class=HTMLResponse)
+async def serve_privacy_policy():
+    with open("web/privacy_policy.html", "r", encoding="utf-8") as privacy_policy_file:
+        privacy_policy_content = privacy_policy_file.read()
+        return privacy_policy_content
+    
 @app.get("/openapi.json", response_model=OpenAPI)
 async def get_openapi_schema():
     openapi_schema = app.openapi()
