@@ -10,7 +10,14 @@ import os
 
 load_dotenv()
 
-app = FastAPI()
+servers = [
+    {
+        "url": "sparkai-gateway.vercel.app",
+        "description": "Spark AI Gateway - Staging"
+    },
+]
+
+app = FastAPI(servers=servers)
 
 """
 { 
@@ -23,9 +30,11 @@ app = FastAPI()
   }
 """
 
+
 class Message(BaseModel):
     role: str
     content: str
+
 
 class ChatCompletion(BaseModel):
     temperature: float = 0.7
@@ -41,12 +50,13 @@ class ChatCompletion(BaseModel):
         if value is None:
             return 2048
         return value
-    
+
     @validator('version', pre=True, always=True)
     def set_version(cls, value):
         if value is None:
             return 'v1.1'
-        return value 
+        return value
+
 
 def get_domain(version):
     domain = None
@@ -59,12 +69,16 @@ def get_domain(version):
 
     return domain
 
+
 @app.post("/v1/chat/completions")
 def chat_completion(
     chatCompletion: ChatCompletion,
-    X_APP_ID: Annotated[Union[str, None], Header(convert_underscores=False)] = None,
-    X_API_KEY: Annotated[Union[str, None], Header(convert_underscores=False)] = None,
-    X_API_SECRET: Annotated[Union[str, None], Header(convert_underscores=False)] = None
+    X_APP_ID: Annotated[Union[str, None], Header(
+        convert_underscores=False)] = None,
+    X_API_KEY: Annotated[Union[str, None], Header(
+        convert_underscores=False)] = None,
+    X_API_SECRET: Annotated[Union[str, None],
+                            Header(convert_underscores=False)] = None
 ):
     version = chatCompletion.version
     domain = get_domain(version)
@@ -77,11 +91,14 @@ def chat_completion(
         domain
     )
 
-    message_dicts = [{"role": msg.role, "content": msg.content} for msg in chatCompletion.messages]
-    completion = spark_chat.chatCompletion(message_dicts, chatCompletion.temperature, chatCompletion.max_tokens)
+    message_dicts = [{"role": msg.role, "content": msg.content}
+                     for msg in chatCompletion.messages]
+    completion = spark_chat.chatCompletion(
+        message_dicts, chatCompletion.temperature, chatCompletion.max_tokens)
     completion["version"] = version
     completion["domain"] = domain
     return completion
+
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_readme(request: Request):
@@ -92,12 +109,8 @@ async def serve_readme(request: Request):
     else:
         raise HTTPException(status_code=404, detail="NOT FOUND")
 
-servers = [
-    Server(url="sparkai-gateway.vercel.app", description="Spark AI Gateway - Staging"),
-]
 
 @app.get("/openapi.json", response_model=OpenAPI)
 async def get_openapi_schema():
     openapi_schema = app.openapi()
-    openapi_schema.servers = servers
     return openapi_schema
