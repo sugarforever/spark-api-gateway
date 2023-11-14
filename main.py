@@ -37,12 +37,12 @@ class Message(BaseModel):
 
 
 class ChatCompletion(BaseModel):
-    temperature: float = 0.7
+    temperature: Optional[float] = 0.7
     max_tokens: Optional[Union[int, None]] = 2048
-    stream: bool = False
+    stream: Optional[bool] = False
     messages: List[Message] = []
-    model: str
-    n: int
+    model: Optional[str] = 'spark-api'
+    n: Optional[int] = 1
     version: Optional[Union[str, None]] = 'v1.1'
 
     @validator('max_tokens', pre=True, always=True)
