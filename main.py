@@ -9,6 +9,7 @@ from spark_chat import SparkChat
 import os
 
 load_dotenv()
+spark_model_versions = ['v1.1', 'v2.1', 'v3.1']
 
 servers = [
     {
@@ -55,6 +56,10 @@ class ChatCompletion(BaseModel):
     def set_version(cls, value):
         if value is None:
             return 'v1.1'
+        
+        if value not in spark_model_versions:
+            return 'v1.1'
+        
         return value
 
 
