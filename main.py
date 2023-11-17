@@ -1,7 +1,7 @@
 from typing import Annotated, List, Union, Optional
 from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
 from fastapi.openapi.models import OpenAPI, Server
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 from pathlib import Path
 from pydantic import BaseModel, validator
 from dotenv import load_dotenv
@@ -98,15 +98,22 @@ def chat_completion(
 
     message_dicts = [{"role": msg.role, "content": msg.content}
                      for msg in chatCompletion.messages]
-    completion = spark_chat.chatCompletion(
-        message_dicts,
-        chatCompletion.temperature,
-        chatCompletion.max_tokens,
-        chatCompletion.stream
-    )
-    completion["version"] = version
-    completion["domain"] = domain
-    return completion
+
+    if (chatCompletion.stream):
+        return StreamingResponse(spark_chat.chatCompletionStream(
+            message_dicts,
+            chatCompletion.temperature,
+            chatCompletion.max_tokens
+        ), media_type="text/event-stream")
+    else:
+        completion = spark_chat.chatCompletion(
+            message_dicts,
+            chatCompletion.temperature,
+            chatCompletion.max_tokens
+        )
+        completion["version"] = version
+        completion["domain"] = domain
+        return completion
 
 
 @app.get("/", response_class=HTMLResponse)

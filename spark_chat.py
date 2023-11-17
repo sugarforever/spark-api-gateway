@@ -7,12 +7,14 @@ import json
 from urllib.parse import urlparse
 import ssl
 from datetime import datetime
-from time import mktime
+from time import mktime, time
 from urllib.parse import urlencode
 from wsgiref.handlers import format_date_time
 from websockets.sync.client import connect
 from websockets.exceptions import ConnectionClosed
 import websocket
+import secrets
+import string
 
 
 class SparkChat(object):
@@ -27,6 +29,11 @@ class SparkChat(object):
         self.path = urlparse(spark_chat_url).path
         self.spark_chat_url = spark_chat_url
         self.domain = domain
+
+    def generate_random_id(self):
+        characters = string.ascii_letters + string.digits
+        string_length = 28
+        return ''.join(secrets.choice(characters) for _ in range(string_length))
 
     def create_url(self):
         now = datetime.now()
@@ -65,7 +72,7 @@ class SparkChat(object):
         thread.start_new_thread(self.run, (ws,))
 
     def run(self, ws, *args):
-        params = self.gen_params(
+        params = self.generate_params(
             messages=ws.messages,
             temperature=ws.temperature,
             max_tokens=ws.max_tokens
@@ -90,7 +97,7 @@ class SparkChat(object):
             if status == 2:
                 ws.close()
 
-    def gen_params(self, messages, temperature=0.7, max_tokens=2048):
+    def generate_params(self, messages, temperature=0.7, max_tokens=2048):
         data = {
             "header": {
                 "app_id": self.app_id,
@@ -112,27 +119,61 @@ class SparkChat(object):
         }
         return data
 
-    def chatCompletion(self, messages, temperature=0.7, max_tokens=2048, stream=False):
-        url = self.create_url()
-        print(url)
+    def chatCompletionStream(self, messages, temperature=0.7, max_tokens=2048):
+        with connect(self.create_url()) as ws:
+            params = self.generate_params(messages, temperature, max_tokens)
+            ws.send(json.dumps(params))
 
-        if stream:
-             with connect(url) as ws:
-                params = self.gen_params(messages, temperature, max_tokens)
-                ws.send(json.dumps(params))
-
-                while True:
-                    try:
-                        message = ws.recv()
-                        print(f"Received: {message}")
-                        yield f"data: {message}\n\n"
-                    except (ConnectionClosed):
-                        yield f"data: [DONE]\n\n"
+            thread_id = self.generate_random_id()
+            while True:
+                try:
+                    message = ws.recv()
+                    print(message)
+                    data = json.loads(message)
+                    code = data['header']['code']
+                    if code != 0:
+                        print(f'请求错误: {code}, {data}')
+                        ws.close()
                         break
-                return
-        
+                    else:
+                        payload = data["payload"]
+                        choices = payload["choices"]
+                        status = choices["status"]
+                        content = choices["text"][0]["content"]
+
+                        chunk = {
+                            "id": f"chatcmpl-{thread_id}",
+                            "object": "chat.completion.chunk",
+                            "created": int(time()),
+                            "model": "spark-ai",
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {
+                                        "role": "assistant",
+                                        "content": content
+                                    },
+                                    "finish_reason": None
+                                }
+                            ]
+                        }
+                        if status == 2:
+                            # Completed with status 2
+                            yield f"data: [DONE]\n\n"
+                            break
+
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                except (ConnectionClosed):
+                    print("Connection closed")
+                    yield f"data: [DONE]\n\n"
+                    break
+        return
+
+    def chatCompletion(self, messages, temperature=0.7, max_tokens=2048):
+        url = self.create_url()
+
         websocket.enableTrace(False)
-        
+
         ws = websocket.WebSocketApp(
             url,
             on_message=self.on_message,
