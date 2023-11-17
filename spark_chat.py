@@ -10,6 +10,8 @@ from datetime import datetime
 from time import mktime
 from urllib.parse import urlencode
 from wsgiref.handlers import format_date_time
+from websockets.sync.client import connect
+from websockets.exceptions import ConnectionClosed
 import websocket
 
 
@@ -110,10 +112,27 @@ class SparkChat(object):
         }
         return data
 
-    def chatCompletion(self, messages, temperature=0.7, max_tokens=2048):
-        websocket.enableTrace(False)
+    def chatCompletion(self, messages, temperature=0.7, max_tokens=2048, stream=False):
         url = self.create_url()
         print(url)
+
+        if stream:
+             with connect(url) as ws:
+                params = self.gen_params(messages, temperature, max_tokens)
+                ws.send(json.dumps(params))
+
+                while True:
+                    try:
+                        message = ws.recv()
+                        print(f"Received: {message}")
+                        yield f"data: {message}\n\n"
+                    except (ConnectionClosed):
+                        yield f"data: [DONE]\n\n"
+                        break
+                return
+        
+        websocket.enableTrace(False)
+        
         ws = websocket.WebSocketApp(
             url,
             on_message=self.on_message,

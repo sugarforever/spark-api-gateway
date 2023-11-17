@@ -1,5 +1,5 @@
 from typing import Annotated, List, Union, Optional
-from fastapi import FastAPI, Header, Request, HTTPException
+from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
 from fastapi.openapi.models import OpenAPI, Server
 from starlette.responses import HTMLResponse
 from pathlib import Path
@@ -99,7 +99,11 @@ def chat_completion(
     message_dicts = [{"role": msg.role, "content": msg.content}
                      for msg in chatCompletion.messages]
     completion = spark_chat.chatCompletion(
-        message_dicts, chatCompletion.temperature, chatCompletion.max_tokens)
+        message_dicts,
+        chatCompletion.temperature,
+        chatCompletion.max_tokens,
+        chatCompletion.stream
+    )
     completion["version"] = version
     completion["domain"] = domain
     return completion
@@ -114,12 +118,14 @@ async def serve_readme(request: Request):
     else:
         raise HTTPException(status_code=404, detail="NOT FOUND")
 
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def serve_privacy_policy():
     with open("web/privacy_policy.html", "r", encoding="utf-8") as privacy_policy_file:
         privacy_policy_content = privacy_policy_file.read()
         return privacy_policy_content
-    
+
+
 @app.get("/openapi.json", response_model=OpenAPI)
 async def get_openapi_schema():
     openapi_schema = app.openapi()
