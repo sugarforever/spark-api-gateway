@@ -99,6 +99,7 @@ def chat_completion(
     message_dicts = [{"role": msg.role, "content": msg.content}
                      for msg in chatCompletion.messages]
 
+    print("stream: ",  chatCompletion.stream)
     if (chatCompletion.stream):
         return StreamingResponse(spark_chat.chatCompletionStream(
             message_dicts,
