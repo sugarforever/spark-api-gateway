@@ -1,5 +1,7 @@
 # Spark API Gateway
 
+星火大模型通过API提供访问。您可以点击[官方链接](https://dub.sh/xinghuo)申请API访问。
+
 Spark API Gateway - 讯飞星火认知大模型API网管，提供OpenAI接口协议兼容的API。该网管目前支持如下API：
 
 - POST /v1/chat/completions
