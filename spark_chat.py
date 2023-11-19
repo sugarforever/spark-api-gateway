@@ -157,12 +157,14 @@ class SparkChat(object):
                                 }
                             ]
                         }
+                        
+                        if len(content) > 0:
+                            yield f"data: {json.dumps(chunk)}\n\n"
+
                         if status == 2:
-                            # Completed with status 2
+                            # Completed with status 2 
                             yield f"data: [DONE]\n\n"
                             break
-
-                        yield f"data: {json.dumps(chunk)}\n\n"
                 except (ConnectionClosed):
                     print("Connection closed")
                     yield f"data: [DONE]\n\n"

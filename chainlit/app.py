@@ -6,13 +6,10 @@ from langchain.schema.runnable.config import RunnableConfig
 
 import chainlit as cl
 
-from dotenv import load_dotenv
-
-load_dotenv()
 
 @cl.on_chat_start
 async def on_chat_start():
-    model = ChatOpenAI(openai_api_base="http://localhost:8888/v1", streaming=False)
+    model = ChatOpenAI(openai_api_base="http://localhost:8888/v1",streaming=True)
     prompt = ChatPromptTemplate.from_messages(
         [
             (
