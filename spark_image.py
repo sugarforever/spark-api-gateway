@@ -201,4 +201,5 @@ class SparkImage(object):
             ],
             "usage": self.usage["text"]
         }
+        
         return completion
