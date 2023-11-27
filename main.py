@@ -6,7 +6,10 @@ from pathlib import Path
 from pydantic import BaseModel, validator
 from dotenv import load_dotenv
 from spark_chat import SparkChat
+from spark_image import SparkImage
 import os
+import base64
+import requests
 
 load_dotenv()
 spark_model_versions = ['v1.1', 'v2.1', 'v3.1']
@@ -32,9 +35,24 @@ app = FastAPI(servers=servers)
 """
 
 
+class MessageContentTextItem(BaseModel):
+    type: str
+    text: str
+
+
+class ImageUrl(BaseModel):
+    url: str
+
+
+class MessageContentImageItem(BaseModel):
+    type: str
+    image_url: ImageUrl
+
+
 class Message(BaseModel):
     role: str
-    content: str
+    content: Union[str, List[Union[MessageContentTextItem,
+                                   MessageContentImageItem]]] = None
 
 
 class ChatCompletion(BaseModel):
@@ -56,10 +74,10 @@ class ChatCompletion(BaseModel):
     def set_version(cls, value):
         if value is None:
             return 'v1.1'
-        
+
         if value not in spark_model_versions:
             return 'v1.1'
-        
+
         return value
 
 
@@ -75,6 +93,21 @@ def get_domain(version):
     return domain
 
 
+def get_image_base64(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            image_data = response.content
+            base64_data = base64.b64encode(image_data).decode('utf-8')
+
+            return base64_data
+        else:
+            print(
+                f"Failed to fetch image. Status code: {response.status_code}")
+            raise Exception(f"Failed to fetch image: {url}")
+    except Exception as e:
+        raise e
+
 @app.post("/v1/chat/completions")
 def chat_completion(
     chatCompletion: ChatCompletion,
@@ -88,27 +121,53 @@ def chat_completion(
     version = chatCompletion.version
     domain = get_domain(version)
 
-    spark_chat = SparkChat(
-        X_APP_ID or os.environ["APP_ID"],
-        X_API_KEY or os.environ["API_KEY"],
-        X_API_SECRET or os.environ["API_SECRET"],
-        f"ws://spark-api.xf-yun.com/{version}/chat",
-        domain
-    )
+    spark_client = None
 
-    message_dicts = [{"role": msg.role, "content": msg.content}
-                     for msg in chatCompletion.messages]
+    if chatCompletion.model == 'vision':
+        spark_client = SparkImage(
+            X_APP_ID or os.environ["APP_ID"],
+            X_API_KEY or os.environ["API_KEY"],
+            X_API_SECRET or os.environ["API_SECRET"]
+        )
+    else:
+        spark_client = SparkChat(
+            X_APP_ID or os.environ["APP_ID"],
+            X_API_KEY or os.environ["API_KEY"],
+            X_API_SECRET or os.environ["API_SECRET"],
+            f"ws://spark-api.xf-yun.com/{version}/chat",
+            domain
+        )
+
+    message_list = []
+    for message in chatCompletion.messages:
+        role = message.role
+        content = message.content
+        if isinstance(content, str):
+            message_list.append({"role": role, "content": content})
+        elif isinstance(content, List):
+            for item in content:
+                if item.type == 'text':
+                    message_list.append({
+                        "role": role,
+                        "content": item.text
+                    })
+                elif item.type == 'image_url':
+                    message_list.append({
+                        "role": role,
+                        "content": get_image_base64(item.image_url.url),
+                        "content_type": "image"
+                    })
 
     print("stream: ",  chatCompletion.stream)
     if (chatCompletion.stream):
-        return StreamingResponse(spark_chat.chatCompletionStream(
-            message_dicts,
+        return StreamingResponse(spark_client.chatCompletionStream(
+            message_list,
             chatCompletion.temperature,
             chatCompletion.max_tokens
         ), media_type="text/event-stream")
     else:
-        completion = spark_chat.chatCompletion(
-            message_dicts,
+        completion = spark_client.chatCompletion(
+            message_list,
             chatCompletion.temperature,
             chatCompletion.max_tokens
         )
