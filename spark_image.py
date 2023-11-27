@@ -199,6 +199,6 @@ class SparkImage(object):
                     "finish_reason": "stop"
                 }
             ],
-            "usage": self.usage
+            "usage": self.usage["text"]
         }
         return completion
