@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 8000
 
 # Define the command to run your FastAPI app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile=/etc/letsencrypt/live/gateway.openai-cloud.com/privkey.pem", "--ssl-certfile=/etc/letsencrypt/live/gateway.openai-cloud.com/fullchain.pem"]
