@@ -1,0 +1,18 @@
+[
+    {
+        "model": "spark-ai",
+        "secrets": {
+            "app_id": "",
+            "api_key": "",
+            "api_secret": ""
+        }
+    },
+    {
+        "model": "vision",
+        "secrets": {
+            "app_id": "",
+            "api_key": "",
+            "api_secret": ""
+        }
+    }
+]

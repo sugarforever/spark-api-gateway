@@ -1,9 +1,31 @@
 version: '3'
 services:
   spark-api-gateway:
-    build:
-      context: .
+    image: 0001coder/spark-api-gateway:1701725253
     ports:
       - "8000:8000"
+    restart: always
     env_file:
       - .env
+    volumes:
+      - ./config/:/etc/spark-api-gateway/config/
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d/:ro
+      - ./certbot/www/:/var/www/certbot/:ro
+      - ./certbot/conf/:/etc/letsencrypt/:ro
+    depends_on:
+      - spark-api-gateway
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
+
+volumes:
+  nginx_ssl:

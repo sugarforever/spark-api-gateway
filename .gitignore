@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 
 .chainlit
+config_list.json

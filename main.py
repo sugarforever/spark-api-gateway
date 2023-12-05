@@ -3,16 +3,17 @@ from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
 from fastapi.openapi.models import OpenAPI, Server
 from starlette.responses import HTMLResponse, StreamingResponse
 from pathlib import Path
-from pydantic import BaseModel, validator
 from dotenv import load_dotenv
 from spark_chat import SparkChat
 from spark_image import SparkImage
 import os
 import base64
 import requests
+from models.schema import ChatCompletion
+from models.config import load_config_dict
 
 load_dotenv()
-spark_model_versions = ['v1.1', 'v2.1', 'v3.1']
+config_dict = load_config_dict()
 
 servers = [
     {
@@ -33,52 +34,6 @@ app = FastAPI(servers=servers)
     "stream": false
   }
 """
-
-
-class MessageContentTextItem(BaseModel):
-    type: str
-    text: str
-
-
-class ImageUrl(BaseModel):
-    url: str
-
-
-class MessageContentImageItem(BaseModel):
-    type: str
-    image_url: ImageUrl
-
-
-class Message(BaseModel):
-    role: str
-    content: Union[str, List[Union[MessageContentTextItem,
-                                   MessageContentImageItem]]] = None
-
-
-class ChatCompletion(BaseModel):
-    temperature: Optional[float] = 0.7
-    max_tokens: Optional[Union[int, None]] = 2048
-    stream: Optional[bool] = False
-    messages: List[Message] = []
-    model: Optional[str] = 'spark-api'
-    n: Optional[int] = 1
-    version: Optional[Union[str, None]] = 'v1.1'
-
-    @validator('max_tokens', pre=True, always=True)
-    def set_max_tokens(cls, value):
-        if value is None:
-            return 2048
-        return value
-
-    @validator('version', pre=True, always=True)
-    def set_version(cls, value):
-        if value is None:
-            return 'v1.1'
-
-        if value not in spark_model_versions:
-            return 'v1.1'
-
-        return value
 
 
 def get_domain(version):
@@ -124,16 +79,19 @@ def chat_completion(
     spark_client = None
 
     if chatCompletion.model == 'vision':
+        secrets = config_dict['vision']
+
         spark_client = SparkImage(
-            X_APP_ID or os.environ["APP_ID"],
-            X_API_KEY or os.environ["API_KEY"],
-            X_API_SECRET or os.environ["API_SECRET"]
+            X_APP_ID or secrets["app_id"],
+            X_API_KEY or secrets["api_key"],
+            X_API_SECRET or secrets["api_secret"]
         )
     else:
+        secrets = config_dict['spark-ai']
         spark_client = SparkChat(
-            X_APP_ID or os.environ["APP_ID"],
-            X_API_KEY or os.environ["API_KEY"],
-            X_API_SECRET or os.environ["API_SECRET"],
+            X_APP_ID or secrets["app_id"],
+            X_API_KEY or secrets["api_key"],
+            X_API_SECRET or secrets["api_secret"],
             f"ws://spark-api.xf-yun.com/{version}/chat",
             domain
         )
