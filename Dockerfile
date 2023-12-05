@@ -14,17 +14,5 @@ COPY . .
 # Expose the port your FastAPI app will run on (default is 8000)
 EXPOSE 8000
 
-# Define build arguments
-ARG SSL_KEYFILE
-ARG SSL_CERTFILE
-
-# Set default values for arguments if not provided during build
-ARG DEFAULT_SSL_KEYFILE=./key.pem
-ARG DEFAULT_SSL_CERTFILE=./cert.pem
-
-# Use the build arguments as environment variables
-ENV SSL_KEYFILE=${SSL_KEYFILE:-$DEFAULT_SSL_KEYFILE}
-ENV SSL_CERTFILE=${SSL_CERTFILE:-$DEFAULT_SSL_CERTFILE}
-
 # Define the command to run your FastAPI app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", f"--ssl-keyfile={SSL_KEYFILE}", f"--ssl-certfile={SSL_CERTFILE}"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile=/etc/ssl/key.pem", "--ssl-certfile=/etc/ssl/cert.pem"]
