@@ -9,6 +9,8 @@ services:
       - .env
     volumes:
       - ./config/:/etc/spark-api-gateway/config/
+      - ./certbot/www/:/var/www/certbot/:ro
+      - ./certbot/conf/:/etc/letsencrypt/:ro      
   nginx:
     image: nginx:latest
     ports:
