@@ -10,6 +10,8 @@ from datetime import datetime
 from time import mktime, time
 from urllib.parse import urlencode
 from wsgiref.handlers import format_date_time
+
+from requests import RequestException
 from websockets.sync.client import connect
 from websockets.exceptions import ConnectionClosed
 import websocket
@@ -85,10 +87,7 @@ class SparkChat(object):
         # print(message)
         data = json.loads(message)
         code = data['header']['code']
-        if code != 0:
-            print(f'请求错误: {code}, {data}')
-            ws.close()
-        else:
+        if code == 0:
             choices = data["payload"]["choices"]
             status = choices["status"]
             content = choices["text"][0]["content"]
@@ -96,6 +95,13 @@ class SparkChat(object):
             self.usage = data["payload"]["usage"]
             if status == 2:
                 ws.close()
+        else:
+            ws.close()
+            if 'message' in data['header']:
+                self.answer += data['header']['message']
+            else:
+                raise RequestException(f'请求错误： {code}, {data}, 请访问https://www.xfyun.cn/document/error-code?code={code} 查看详情')
+            
 
     def generate_params(self, messages, temperature=0.7, max_tokens=2048):
         data = {
