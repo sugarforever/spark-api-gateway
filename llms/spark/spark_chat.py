@@ -18,7 +18,6 @@ import websocket
 import secrets
 import string
 
-
 class SparkChat(object):
     answer = ""
     usage = None

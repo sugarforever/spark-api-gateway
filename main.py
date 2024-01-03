@@ -4,11 +4,8 @@ from fastapi.openapi.models import OpenAPI, Server
 from starlette.responses import HTMLResponse, StreamingResponse
 from pathlib import Path
 from dotenv import load_dotenv
-from spark_chat import SparkChat
-from spark_image import SparkImage
-import os
-import base64
-import requests
+from llms.spark import SparkChat, SparkImage, SparkUtil
+from services import ImageService, load_logging_config
 from models.schema import ChatCompletion
 from models.config import load_config_dict
 
@@ -36,33 +33,6 @@ app = FastAPI(servers=servers)
 """
 
 
-def get_domain(version):
-    domain = None
-    if version == 'v1.1':
-        domain = "general"
-    elif version == 'v2.1':
-        domain = "generalv2"
-    elif version == 'v3.1':
-        domain = "generalv3"
-
-    return domain
-
-
-def get_image_base64(url):
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            image_data = response.content
-            base64_data = base64.b64encode(image_data).decode('utf-8')
-
-            return base64_data
-        else:
-            print(
-                f"Failed to fetch image. Status code: {response.status_code}")
-            raise Exception(f"Failed to fetch image: {url}")
-    except Exception as e:
-        raise e
-
 @app.post("/v1/chat/completions")
 def chat_completion(
     chatCompletion: ChatCompletion,
@@ -74,7 +44,7 @@ def chat_completion(
                             Header(convert_underscores=False)] = None
 ):
     version = chatCompletion.version
-    domain = get_domain(version)
+    domain = SparkUtil.get_domain(version)
 
     spark_client = None
 
@@ -112,7 +82,7 @@ def chat_completion(
                 elif item.type == 'image_url':
                     message_list.append({
                         "role": role,
-                        "content": get_image_base64(item.image_url.url),
+                        "content": ImageService.get_image_base64(item.image_url.url),
                         "content_type": "image"
                     })
 
