@@ -43,18 +43,20 @@ def chat_completion(
     X_API_SECRET: Annotated[Union[str, None],
                             Header(convert_underscores=False)] = None
 ):
-    version = chatCompletion.version
-    domain = SparkUtil.get_domain(version)
 
+    model_name = chatCompletion.model
     spark_client = None
+    api_spec = SparkUtil.get_api_spec(model_name)
 
-    if chatCompletion.model == 'vision':
+    if api_spec.model_version == 'vision':
         secrets = config_dict['vision']
 
         spark_client = SparkImage(
             X_APP_ID or secrets["app_id"],
             X_API_KEY or secrets["api_key"],
-            X_API_SECRET or secrets["api_secret"]
+            X_API_SECRET or secrets["api_secret"],
+            api_spec.api_version,
+            api_spec.domain
         )
     else:
         secrets = config_dict['spark-ai']
@@ -62,8 +64,8 @@ def chat_completion(
             X_APP_ID or secrets["app_id"],
             X_API_KEY or secrets["api_key"],
             X_API_SECRET or secrets["api_secret"],
-            f"ws://spark-api.xf-yun.com/{version}/chat",
-            domain
+            f"ws://spark-api.xf-yun.com/{api_spec.api_version}/chat",
+            api_spec.domain
         )
 
     message_list = []
@@ -99,8 +101,8 @@ def chat_completion(
             chatCompletion.temperature,
             chatCompletion.max_tokens
         )
-        completion["version"] = version
-        completion["domain"] = domain
+        completion["version"] = api_spec.model_version
+        completion["domain"] = api_spec.domain
         return completion
 
 

@@ -1,7 +1,8 @@
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Union, Optional
+from llms.spark import SparkModels
 
-spark_model_versions = ['v1.1', 'v2.1', 'v3.1']
+spark_model_versions = ['spark-api-v1.5', 'spark-api-v2', 'spark-api-v3', 'spark-api-vision']
 
 class MessageContentTextItem(BaseModel):
     type: str
@@ -28,9 +29,8 @@ class ChatCompletion(BaseModel):
     max_tokens: Optional[Union[int, None]] = 2048
     stream: Optional[bool] = False
     messages: List[Message] = []
-    model: Optional[str] = 'spark-api'
+    model: Optional[str] = SparkModels.SPARK_CHAT_COMPLETION_V3
     n: Optional[int] = 1
-    version: Optional[Union[str, None]] = 'v1.1'
 
     @validator('max_tokens', pre=True, always=True)
     def set_max_tokens(cls, value):
@@ -38,13 +38,9 @@ class ChatCompletion(BaseModel):
             return 2048
         return value
 
-    @validator('version', pre=True, always=True)
-    def set_version(cls, value):
-        if value is None:
-            return 'v1.1'
-
-        if value not in spark_model_versions:
-            return 'v1.1'
-
+    @validator('model', pre=True, always=True)
+    def set_model(cls, value):
+        if value not in spark_model_versions or value is None:
+            return SparkModels.SPARK_CHAT_COMPLETION_V3
         return value
     

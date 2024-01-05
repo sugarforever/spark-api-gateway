@@ -20,15 +20,18 @@ import string
 class SparkImage(object):
     answer = ""
     usage = None
-    spark_image_url = "wss://spark-api.cn-huabei-1.xf-yun.com/v2.1/image"
-    domain = "general"
 
-    def __init__(self, app_id, api_key, api_secret):
+    def __init__(self, app_id, api_key, api_secret, api_version, domain):
+        spark_image_url_format = "wss://spark-api.cn-huabei-1.xf-yun.com/{}/image"
+
         self.app_id = app_id
         self.api_key = api_key
         self.api_secret = api_secret
+        self.spark_image_url = spark_image_url_format.format(api_version)
         self.host = urlparse(self.spark_image_url).netloc
         self.path = urlparse(self.spark_image_url).path
+        self.api_version = api_version
+        self.domain = domain
 
     def generate_random_id(self):
         characters = string.ascii_letters + string.digits
