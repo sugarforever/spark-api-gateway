@@ -4,7 +4,7 @@ from fastapi.openapi.models import OpenAPI, Server
 from starlette.responses import HTMLResponse, StreamingResponse
 from pathlib import Path
 from dotenv import load_dotenv
-from llms.spark import SparkChat, SparkImage, SparkUtil
+from llms.spark import SparkChat, SparkImage, SparkUtil, SparkModels
 from services import ImageService, load_logging_config
 from models.schema import ChatCompletion
 from models.config import load_config_dict
@@ -44,11 +44,12 @@ def chat_completion(
                             Header(convert_underscores=False)] = None
 ):
 
+    print(chatCompletion)
     model_name = chatCompletion.model
     spark_client = None
     api_spec = SparkUtil.get_api_spec(model_name)
 
-    if api_spec.model_version == 'vision':
+    if api_spec.model == SparkModels.SPARK_COMPLETION_VISON:
         secrets = config_dict['vision']
 
         spark_client = SparkImage(
@@ -101,7 +102,7 @@ def chat_completion(
             chatCompletion.temperature,
             chatCompletion.max_tokens
         )
-        completion["version"] = api_spec.model_version
+        completion["model"] = api_spec.model
         completion["domain"] = api_spec.domain
         return completion
 
