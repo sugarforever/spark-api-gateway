@@ -1,3 +1,9 @@
+from pydantic import BaseModel
+
+class SparkApiSpec(BaseModel):
+    domain: str
+    version: str
+
 class SparkUtil:
 
     @classmethod
