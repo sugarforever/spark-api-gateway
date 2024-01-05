@@ -73,12 +73,13 @@ def chat_completion(
     X_API_SECRET: Annotated[Union[str, None],
                             Header(convert_underscores=False)] = None
 ):
-    version = chatCompletion.version
-    domain = get_domain(version)
-
+    
+    model = chatCompletion.model
     spark_client = None
-
-    if chatCompletion.model == 'vision':
+    version = model.split("-")[-1]  
+    domain = get_domain(version) 
+    
+    if model == 'vision':
         secrets = config_dict['vision']
 
         spark_client = SparkImage(
