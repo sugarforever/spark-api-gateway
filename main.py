@@ -9,6 +9,7 @@ from spark_image import SparkImage
 import os
 import base64
 import requests
+import re
 from models.schema import ChatCompletion
 from models.config import load_config_dict
 
@@ -49,12 +50,18 @@ def get_domain(version):
 
 
 def get_image_base64(url):
+    pattern = r'^data:image/[^;]+;base64,'
+    match = re.match(pattern, url)
+
+    if match:
+        remaining_part = url[len(match.group(0)):]
+        return remaining_part
+    
     try:
         response = requests.get(url)
         if response.status_code == 200:
             image_data = response.content
             base64_data = base64.b64encode(image_data).decode('utf-8')
-
             return base64_data
         else:
             print(
