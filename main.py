@@ -1,19 +1,17 @@
-from typing import Annotated, List, Union, Optional
-from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
-from fastapi.openapi.models import OpenAPI, Server
-from starlette.responses import HTMLResponse, StreamingResponse
-from pathlib import Path
 from dotenv import load_dotenv
-from spark_chat import SparkChat
-from spark_image import SparkImage
-import os
-import base64
-import requests
-import re
-from models.schema import ChatCompletion
-from models.config import load_config_dict
-
 load_dotenv()
+
+from models.config import load_config_dict
+from models.schema import ChatCompletion
+from services import ImageService, load_logging_config
+from llms.spark import SparkChat, SparkImage, SparkUtil, SparkModels
+from pathlib import Path
+from starlette.responses import HTMLResponse, StreamingResponse
+from fastapi.openapi.models import OpenAPI, Server
+from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
+from typing import Annotated, List, Union, Optional
+
+
 config_dict = load_config_dict()
 
 servers = [
@@ -37,38 +35,15 @@ app = FastAPI(servers=servers)
 """
 
 
-def get_domain(version):
-    domain = None
-    if version == 'v1.1':
-        domain = "general"
-    elif version == 'v2.1':
-        domain = "generalv2"
-    elif version == 'v3.1':
-        domain = "generalv3"
+@app.get("/v1/models")
+def get_models():
+    return {
+        "object": "list",
+        "data": [
+            {"id": model, "object": "model", "created": None, "owned_by": None} for model in SparkModels.values()
+        ]
+    }
 
-    return domain
-
-
-def get_image_base64(url):
-    pattern = r'^data:image/[^;]+;base64,'
-    match = re.match(pattern, url)
-
-    if match:
-        remaining_part = url[len(match.group(0)):]
-        return remaining_part
-    
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            image_data = response.content
-            base64_data = base64.b64encode(image_data).decode('utf-8')
-            return base64_data
-        else:
-            print(
-                f"Failed to fetch image. Status code: {response.status_code}")
-            raise Exception(f"Failed to fetch image: {url}")
-    except Exception as e:
-        raise e
 
 @app.post("/v1/chat/completions")
 def chat_completion(
@@ -80,19 +55,19 @@ def chat_completion(
     X_API_SECRET: Annotated[Union[str, None],
                             Header(convert_underscores=False)] = None
 ):
-    
-    model = chatCompletion.model
+    model_name = chatCompletion.model
     spark_client = None
-    version = model.split("-")[-1]  
-    domain = get_domain(version) 
-    
-    if model == 'vision':
+    api_spec = SparkUtil.get_api_spec(model_name)
+
+    if api_spec.model == SparkModels.SPARK_COMPLETION_VISON.value:
         secrets = config_dict['vision']
 
         spark_client = SparkImage(
             X_APP_ID or secrets["app_id"],
             X_API_KEY or secrets["api_key"],
-            X_API_SECRET or secrets["api_secret"]
+            X_API_SECRET or secrets["api_secret"],
+            api_spec.api_version,
+            api_spec.domain
         )
     else:
         secrets = config_dict['spark-ai']
@@ -100,8 +75,8 @@ def chat_completion(
             X_APP_ID or secrets["app_id"],
             X_API_KEY or secrets["api_key"],
             X_API_SECRET or secrets["api_secret"],
-            f"ws://spark-api.xf-yun.com/{version}/chat",
-            domain
+            f"ws://spark-api.xf-yun.com/{api_spec.api_version}/chat",
+            api_spec.domain
         )
 
     message_list = []
@@ -120,11 +95,10 @@ def chat_completion(
                 elif item.type == 'image_url':
                     message_list.append({
                         "role": role,
-                        "content": get_image_base64(item.image_url.url),
+                        "content": ImageService.get_image_base64(item.image_url.url),
                         "content_type": "image"
                     })
 
-    print("stream: ",  chatCompletion.stream)
     if (chatCompletion.stream):
         return StreamingResponse(spark_client.chatCompletionStream(
             message_list,
@@ -137,8 +111,8 @@ def chat_completion(
             chatCompletion.temperature,
             chatCompletion.max_tokens
         )
-        completion["version"] = version
-        completion["domain"] = domain
+        completion["model"] = api_spec.model
+        completion["domain"] = api_spec.domain
         return completion
 
 
