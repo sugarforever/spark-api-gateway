@@ -22,7 +22,7 @@ jobs:
       run: |
         TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
         docker build . --file Dockerfile --tag 0001coder/spark-api-gateway:${TIMESTAMP}
-        docker tag 0001coder/spark-api-gateway:${TIMESTAMP} 0001coder/spark-api-gateway:latest
+        docker tag 0001coder/bigbun:${TIMESTAMP} 0001coder/spark-api-gateway:latest
     - name: Log in to Docker Hub
       run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
     - name: Push Docker image to registry
