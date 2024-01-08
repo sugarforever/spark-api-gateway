@@ -20,15 +20,18 @@ import string
 class SparkImage(object):
     answer = ""
     usage = None
-    spark_image_url = "wss://spark-api.cn-huabei-1.xf-yun.com/v2.1/image"
-    domain = "general"
 
-    def __init__(self, app_id, api_key, api_secret):
+    def __init__(self, app_id, api_key, api_secret, api_version, domain):
+        spark_image_url_format = "wss://spark-api.cn-huabei-1.xf-yun.com/{}/image"
+
         self.app_id = app_id
         self.api_key = api_key
         self.api_secret = api_secret
+        self.spark_image_url = spark_image_url_format.format(api_version)
         self.host = urlparse(self.spark_image_url).netloc
         self.path = urlparse(self.spark_image_url).path
+        self.api_version = api_version
+        self.domain = domain
 
     def generate_random_id(self):
         characters = string.ascii_letters + string.digits
@@ -77,12 +80,10 @@ class SparkImage(object):
             temperature=ws.temperature,
             max_tokens=ws.max_tokens
         )
-        print(params)
         data = json.dumps(params)
         ws.send(data)
 
     def on_message(self, ws, message):
-        # print(message)
         data = json.loads(message)
         code = data['header']['code']
         if code != 0:
@@ -128,7 +129,6 @@ class SparkImage(object):
             while True:
                 try:
                     message = ws.recv()
-                    print(message)
                     data = json.loads(message)
                     code = data['header']['code']
                     if code != 0:
@@ -173,7 +173,7 @@ class SparkImage(object):
 
     def chatCompletion(self, messages, temperature=0.7, max_tokens=2048):
         url = self.create_url()
-
+        print(f"API URL: {url}")
         websocket.enableTrace(False)
 
         ws = websocket.WebSocketApp(
