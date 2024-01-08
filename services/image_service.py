@@ -1,11 +1,19 @@
 import base64
 import requests
+import re
 
 
 class ImageService:
 
     @classmethod
     def get_image_base64(cls, url):
+        pattern = r'^data:image/[^;]+;base64,'
+        match = re.match(pattern, url)
+
+        if match:
+            remaining_part = url[len(match.group(0)):]
+            return remaining_part
+    
         try:
             response = requests.get(url)
             if response.status_code == 200:

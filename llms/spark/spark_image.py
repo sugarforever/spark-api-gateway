@@ -80,12 +80,10 @@ class SparkImage(object):
             temperature=ws.temperature,
             max_tokens=ws.max_tokens
         )
-        print(params)
         data = json.dumps(params)
         ws.send(data)
 
     def on_message(self, ws, message):
-        # print(message)
         data = json.loads(message)
         code = data['header']['code']
         if code != 0:
@@ -131,7 +129,6 @@ class SparkImage(object):
             while True:
                 try:
                     message = ws.recv()
-                    print(message)
                     data = json.loads(message)
                     code = data['header']['code']
                     if code != 0:
@@ -176,7 +173,7 @@ class SparkImage(object):
 
     def chatCompletion(self, messages, temperature=0.7, max_tokens=2048):
         url = self.create_url()
-
+        print(f"API URL: {url}")
         websocket.enableTrace(False)
 
         ws = websocket.WebSocketApp(

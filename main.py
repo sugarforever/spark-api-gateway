@@ -1,15 +1,17 @@
-from typing import Annotated, List, Union, Optional
-from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
-from fastapi.openapi.models import OpenAPI, Server
-from starlette.responses import HTMLResponse, StreamingResponse
-from pathlib import Path
 from dotenv import load_dotenv
-from llms.spark import SparkChat, SparkImage, SparkUtil, SparkModels
-from services import ImageService, load_logging_config
-from models.schema import ChatCompletion
-from models.config import load_config_dict
-
 load_dotenv()
+
+from models.config import load_config_dict
+from models.schema import ChatCompletion
+from services import ImageService, load_logging_config
+from llms.spark import SparkChat, SparkImage, SparkUtil, SparkModels
+from pathlib import Path
+from starlette.responses import HTMLResponse, StreamingResponse
+from fastapi.openapi.models import OpenAPI, Server
+from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
+from typing import Annotated, List, Union, Optional
+
+
 config_dict = load_config_dict()
 
 servers = [
@@ -33,6 +35,16 @@ app = FastAPI(servers=servers)
 """
 
 
+@app.get("/v1/models")
+def get_models():
+    return {
+        "object": "list",
+        "data": [
+            {"id": model, "object": "model", "created": None, "owned_by": None} for model in SparkModels.values()
+        ]
+    }
+
+
 @app.post("/v1/chat/completions")
 def chat_completion(
     chatCompletion: ChatCompletion,
@@ -43,13 +55,11 @@ def chat_completion(
     X_API_SECRET: Annotated[Union[str, None],
                             Header(convert_underscores=False)] = None
 ):
-
-    print(chatCompletion)
     model_name = chatCompletion.model
     spark_client = None
     api_spec = SparkUtil.get_api_spec(model_name)
 
-    if api_spec.model == SparkModels.SPARK_COMPLETION_VISON:
+    if api_spec.model == SparkModels.SPARK_COMPLETION_VISON.value:
         secrets = config_dict['vision']
 
         spark_client = SparkImage(
@@ -89,7 +99,6 @@ def chat_completion(
                         "content_type": "image"
                     })
 
-    print("stream: ",  chatCompletion.stream)
     if (chatCompletion.stream):
         return StreamingResponse(spark_client.chatCompletionStream(
             message_list,
