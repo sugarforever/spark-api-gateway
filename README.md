@@ -13,6 +13,12 @@ Spark API Gateway - 讯飞星火认知大模型API网管，提供OpenAI接口协
 
 获取Spark API Gateway当前支持的模型列表。该API响应的schema与OpenAI的/v1/models保持一致。
 
+curl示例：
+
+```shell
+curl --location 'http://localhost:8000/v1/models'
+```
+
 您应该期望如下API响应：
 
 ```json
