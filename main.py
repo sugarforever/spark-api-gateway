@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from models.config import load_config_dict
+from models.config import load_config_dict, ConfigDict
 from models.schema import ChatCompletion
 from services import ImageService, load_logging_config
 from llms.spark import SparkChat, SparkImage, SparkUtil, SparkModels
@@ -12,7 +12,7 @@ from fastapi import FastAPI, Header, Request, HTTPException, WebSocket
 from typing import Annotated, List, Union, Optional
 
 
-config_dict = load_config_dict()
+config_dict: ConfigDict = load_config_dict()
 
 servers = [
     {
@@ -60,21 +60,18 @@ def chat_completion(
     api_spec = SparkUtil.get_api_spec(model_name)
 
     if api_spec.model == SparkModels.SPARK_COMPLETION_VISON.value:
-        secrets = config_dict['vision']
-
         spark_client = SparkImage(
-            X_APP_ID or secrets["app_id"],
-            X_API_KEY or secrets["api_key"],
-            X_API_SECRET or secrets["api_secret"],
+            X_APP_ID or config_dict.get(api_spec.model, "app_id"),
+            X_API_KEY or config_dict.get(api_spec.model, "api_key"),
+            X_API_SECRET or config_dict.get(api_spec.model, "api_secret"),
             api_spec.api_version,
             api_spec.domain
         )
     else:
-        secrets = config_dict['spark-ai']
         spark_client = SparkChat(
-            X_APP_ID or secrets["app_id"],
-            X_API_KEY or secrets["api_key"],
-            X_API_SECRET or secrets["api_secret"],
+            X_APP_ID or config_dict.get(api_spec.model, "app_id"),
+            X_API_KEY or config_dict.get(api_spec.model, "api_key"),
+            X_API_SECRET or config_dict.get(api_spec.model, "api_secret"),
             f"ws://spark-api.xf-yun.com/{api_spec.api_version}/chat",
             api_spec.domain
         )

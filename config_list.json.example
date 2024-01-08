@@ -1,6 +1,6 @@
 [
     {
-        "model": "spark-ai",
+        "model": "spark-chat-v1.5",
         "secrets": {
             "app_id": "",
             "api_key": "",
@@ -8,7 +8,23 @@
         }
     },
     {
-        "model": "vision",
+        "model": "spark-chat-v2",
+        "secrets": {
+            "app_id": "",
+            "api_key": "",
+            "api_secret": ""
+        }
+    },
+    {
+        "model": "spark-chat-v3",
+        "secrets": {
+            "app_id": "",
+            "api_key": "",
+            "api_secret": ""
+        }
+    },
+    {
+        "model": "spark-chat-vision",
         "secrets": {
             "app_id": "",
             "api_key": "",
